@@ -192,7 +192,7 @@
         };
 
         const SkeletonLoader = ({ viewMode }) => {
-            const count = 4;
+            const count = 6; // Increased skeleton count for wider screens
             return React.createElement(React.Fragment, null,
                 [...Array(count)].map((_, i) => 
                      React.createElement('div', { key: i, className: "modern-card p-4 h-[380px] animate-pulse bg-white" },
@@ -320,7 +320,7 @@
                 
                 // COMPACT FLOATING HEADER
                 React.createElement('header', { className: `fixed top-0 left-0 right-0 z-50 px-2 md:px-6 pt-2 md:pt-4` },
-                    React.createElement('div', { className: `max-w-7xl mx-auto rounded-2xl glass-header px-4 md:px-6 py-3 shadow-sm` },
+                    React.createElement('div', { className: `max-w-[1800px] mx-auto rounded-2xl glass-header px-4 md:px-6 py-3 shadow-sm` },
                         React.createElement('div', { className: "flex flex-col md:flex-row items-center justify-between gap-3" },
                             
                             // Logo Area
@@ -372,7 +372,7 @@
                 ),
 
                 // BODY CONTENT
-                React.createElement('main', { className: "max-w-7xl mx-auto px-3 md:px-6 pt-32 md:pt-40" },
+                React.createElement('main', { className: "max-w-[1800px] mx-auto px-3 md:px-6 pt-32 md:pt-40" },
                     
                     // Stats bar
                     !loading && React.createElement('div', { className: "mb-4 md:mb-8 flex justify-between items-end px-1" },
@@ -388,7 +388,7 @@
                     ),
 
                     // Content Grid
-                    React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8" },
+                    React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-6" },
                         loading ? (
                             React.createElement(SkeletonLoader, { viewMode: 'grid' })
                         ) : displayedStudents.length > 0 ? (
