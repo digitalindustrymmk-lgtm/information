@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>បញ្ជីបុគ្គលិក & សិស្ស</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4f46e5', // Indigo 600
+                        secondary: '#64748b', // Slate 500
+                        background: '#f1f5f9', // Slate 100
+                    },
+                    fontFamily: {
+                        khmer: ['Kantumruy Pro', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Custom Styles -->
+    <style>
+        body {
+            font-family: 'Kantumruy Pro', sans-serif;
+            background-color: #f1f5f9;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Smooth Animations */
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-enter {
+            animation: fadeInScale 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        /* Glass Effect */
+        .glass-header {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255,255,255,0.5);
+        }
+    </style>
+
+    <!-- Import Map for Modules -->
+    <script type="importmap">
+        {
+            "imports": {
+                "react": "https://esm.sh/react@18.2.0",
+                "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+                "lucide-react": "https://esm.sh/lucide-react@0.292.0"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- React App Script -->
+    <script type="module">
+        import React, { useState, useEffect, useMemo } from 'react';
+        import ReactDOM from 'react-dom/client';
+        import { User, Search, MapPin, Briefcase, Hash, GraduationCap, Users, Sparkles, Loader2, Layers, LayoutGrid, List, CheckCircle2 } from 'lucide-react';
+        
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+        // 1. Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyAc2g-t9A7du3K_nI2fJnw_OGxhmLfpP6s",
+            authDomain: "dilistname.firebaseapp.com",
+            databaseURL: "https://dilistname-default-rtdb.firebaseio.com",
+            projectId: "dilistname",
+            storageBucket: "dilistname.firebasestorage.app",
+            messagingSenderId: "897983357871",
+            appId: "1:897983357871:web:42a046bc9fb3e0543dc55a",
+            measurementId: "G-NQ798D9J6K"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // --- COMPONENTS ---
+
+        // 1. Profile Image Component
+        const ProfileImage = ({ src, alt, size = "large" }) => {
+            const [error, setError] = useState(false);
+            const sizeClass = size === "large" ? "w-24 h-24" : "w-12 h-12";
+            const iconSize = size === "large" ? 40 : 20;
+
+            if (!src || error) {
+                return React.createElement('div', { className: `${sizeClass} rounded-full bg-slate-100 flex items-center justify-center text-slate-400 ring-4 ring-white shadow-sm` },
+                    React.createElement(User, { size: iconSize, strokeWidth: 1.5 })
+                );
+            }
+
+            return React.createElement('img', {
+                src: src,
+                alt: alt,
+                loading: "lazy",
+                className: `${sizeClass} object-cover rounded-full ring-4 ring-white shadow-sm bg-white`,
+                onError: () => setError(true)
+            });
+        };
+
+        // 2. Info Row (Modern Minimalist)
+        const InfoRow = React.memo(({ icon: Icon, label, value }) => {
+            const hasValue = value && value.toString().trim() !== '';
+            return React.createElement('div', { className: "flex items-center justify-between py-2 border-b border-slate-50 last:border-0 group hover:bg-slate-50/50 px-2 rounded-lg transition-colors" },
+                React.createElement('div', { className: "flex items-center gap-3" },
+                    React.createElement('div', { className: "text-slate-400 group-hover:text-primary transition-colors" },
+                        React.createElement(Icon, { size: 16 })
+                    ),
+                    React.createElement('span', { className: "text-sm text-slate-500 font-medium" }, label)
+                ),
+                React.createElement('span', { className: `text-sm font-semibold text-right truncate pl-4 max-w-[60%] ${hasValue ? 'text-slate-700' : 'text-red-400 text-xs italic'}` },
+                    hasValue ? value : 'គ្មានព័ត៌មាន'
+                )
+            );
+        });
+
+        // 3. Grid Card (Standard Card)
+        const StudentCard = ({ student, index }) => {
+            return React.createElement('div', { 
+                className: "animate-enter bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-200/60 overflow-hidden flex flex-col group",
+                style: { animationDelay: `${index * 0.05}s` }
+            },
+                // Header Profile Section
+                React.createElement('div', { className: "relative pt-8 pb-4 flex flex-col items-center bg-gradient-to-b from-slate-50 to-white border-b border-slate-100" },
+                    // Status Badge
+                    React.createElement('div', { className: "absolute top-4 right-4" },
+                        React.createElement('span', { className: "flex h-3 w-3" },
+                            React.createElement('span', { className: "animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" }),
+                            React.createElement('span', { className: "relative inline-flex rounded-full h-3 w-3 bg-green-500" })
+                        )
+                    ),
+                    
+                    // Profile Image
+                    React.createElement('div', { className: "mb-3 transform group-hover:scale-105 transition-transform duration-300" },
+                        React.createElement(ProfileImage, { src: student['រូបថត'], alt: student['ឈ្មោះ'], size: "large" })
+                    ),
+
+                    // Names
+                    React.createElement('h3', { className: "text-lg font-bold text-slate-800 text-center px-4" }, student['ឈ្មោះ']),
+                    React.createElement('p', { className: "text-xs font-semibold text-primary uppercase tracking-wider mb-2" }, student['ឈ្មោះឡាតាំង']),
+                    
+                    // Role Badge
+                    React.createElement('span', { className: "px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full border border-slate-200" },
+                        student['តួនាទី'] || 'សិស្ស'
+                    )
+                ),
+
+                // Content Details
+                React.createElement('div', { className: "p-4 space-y-1 bg-white flex-1" },
+                    React.createElement(InfoRow, { icon: Hash, label: "អត្តលេខ", value: student['អត្តលេខ'] }),
+                    React.createElement(InfoRow, { icon: Users, label: "ភេទ", value: student['ភេទ'] }),
+                    React.createElement(InfoRow, { icon: MapPin, label: "ទីកន្លែង", value: student['ទីកន្លែងកំណើត'] }),
+                    React.createElement(InfoRow, { icon: Layers, label: "ក្រុម", value: student['ក្រុម'] }),
+                    React.createElement(InfoRow, { icon: GraduationCap, label: "ជំនាញ", value: student['ជំនាញ'] }),
+                    React.createElement(InfoRow, { icon: Briefcase, label: "ផ្នែក", value: student['ផ្នែកការងារ'] }),
+                    React.createElement(InfoRow, { icon: User, label: "ថ្នាក់", value: student['ថ្នាក់'] })
+                )
+            );
+        };
+
+        // 4. List Item (Clean Row)
+        const StudentListItem = ({ student, index }) => {
+            return React.createElement('div', { 
+                className: "animate-enter bg-white rounded-xl p-4 shadow-sm hover:shadow-md border border-slate-200/60 transition-all duration-200 flex items-center gap-4 group",
+                style: { animationDelay: `${index * 0.05}s` }
+            },
+                // Image
+                React.createElement('div', { className: "shrink-0" },
+                    React.createElement(ProfileImage, { src: student['រូបថត'], alt: student['ឈ្មោះ'], size: "small" })
+                ),
+
+                // Info
+                React.createElement('div', { className: "flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 items-center" },
+                    // Name
+                    React.createElement('div', { className: "md:col-span-4" },
+                        React.createElement('h3', { className: "font-bold text-slate-800" }, student['ឈ្មោះ']),
+                        React.createElement('div', { className: "flex items-center gap-2 text-xs text-slate-500" },
+                            React.createElement('span', { className: "uppercase font-semibold text-primary" }, student['ឈ្មោះឡាតាំង']),
+                            React.createElement('span', { className: "text-slate-300" }, "|"),
+                            React.createElement(Hash, { size: 12 }),
+                            React.createElement('span', { className: "font-mono" }, student['អត្តលេខ'] || 'N/A')
+                        )
+                    ),
+                    
+                    // Group/Class
+                    React.createElement('div', { className: "md:col-span-3 hidden md:flex flex-col text-sm" },
+                        React.createElement('span', { className: "text-slate-500 text-xs" }, "ក្រុម / ថ្នាក់"),
+                        React.createElement('div', { className: "font-medium text-slate-700 flex items-center gap-2" },
+                             React.createElement(Layers, { size: 14, className: "text-slate-400" }),
+                             student['ក្រុម'] || '-',
+                             React.createElement('span', { className: "text-slate-300" }, "/"),
+                             student['ថ្នាក់']
+                        )
+                    ),
+
+                    // Role/Dept
+                    React.createElement('div', { className: "md:col-span-5 flex items-center justify-between md:justify-end gap-3" },
+                         React.createElement('div', { className: "flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 text-slate-600 rounded-lg border border-slate-100" },
+                            React.createElement(Briefcase, { size: 14 }),
+                            React.createElement('span', { className: "text-xs font-semibold" }, student['ផ្នែកការងារ'] || '-')
+                         ),
+                         React.createElement('div', { className: "hidden md:block text-slate-300" },
+                            React.createElement(CheckCircle2, { size: 20, className: "text-green-500" })
+                         )
+                    )
+                )
+            );
+        };
+
+        // 5. Skeleton Loader
+        const SkeletonLoader = ({ viewMode }) => {
+            const count = 6;
+            return React.createElement(React.Fragment, null,
+                [...Array(count)].map((_, i) => 
+                    viewMode === 'grid' ? (
+                        React.createElement('div', { key: i, className: "bg-white rounded-2xl shadow-sm p-4 h-[400px] animate-pulse border border-slate-100" },
+                            React.createElement('div', { className: "flex flex-col items-center pt-8 space-y-4" },
+                                React.createElement('div', { className: "w-24 h-24 rounded-full bg-slate-200" }),
+                                React.createElement('div', { className: "h-6 w-32 bg-slate-200 rounded" }),
+                                React.createElement('div', { className: "h-4 w-20 bg-slate-200 rounded" })
+                            ),
+                            React.createElement('div', { className: "mt-8 space-y-3 px-4" },
+                                [...Array(5)].map((_, j) => 
+                                    React.createElement('div', { key: j, className: "flex justify-between" },
+                                        React.createElement('div', { className: "h-4 w-1/3 bg-slate-200 rounded" }),
+                                        React.createElement('div', { className: "h-4 w-1/4 bg-slate-200 rounded" })
+                                    )
+                                )
+                            )
+                        )
+                    ) : (
+                        React.createElement('div', { key: i, className: "bg-white rounded-xl p-4 shadow-sm animate-pulse border border-slate-100 flex items-center gap-4" },
+                            React.createElement('div', { className: "w-12 h-12 rounded-full bg-slate-200 shrink-0" }),
+                            React.createElement('div', { className: "flex-1 space-y-2" },
+                                React.createElement('div', { className: "h-4 w-1/3 bg-slate-200 rounded" }),
+                                React.createElement('div', { className: "h-3 w-1/4 bg-slate-200 rounded" })
+                            )
+                        )
+                    )
+                )
+            );
+        };
+
+        // --- MAIN APP ---
+        function App() {
+            const [students, setStudents] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [debouncedTerm, setDebouncedTerm] = useState('');
+            const [visibleCount, setVisibleCount] = useState(12);
+            const [scrolled, setScrolled] = useState(false);
+            const [viewMode, setViewMode] = useState('grid');
+
+            // Debounce Search
+            useEffect(() => {
+                const timer = setTimeout(() => {
+                    setDebouncedTerm(searchTerm);
+                    setVisibleCount(12);
+                }, 300);
+                return () => clearTimeout(timer);
+            }, [searchTerm]);
+
+            // Scroll Logic
+            useEffect(() => {
+                const handleScroll = () => {
+                    setScrolled(window.scrollY > 10);
+                    const isBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 200;
+                    if (isBottom && !loading) {
+                        setVisibleCount(prev => prev + 12);
+                    }
+                };
+                window.addEventListener('scroll', handleScroll);
+                return () => window.removeEventListener('scroll', handleScroll);
+            }, [loading]);
+
+            // Firebase Fetch
+            useEffect(() => {
+                const studentsRef = ref(db, 'students');
+                const unsubscribe = onValue(studentsRef, (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        const list = Object.entries(data).map(([key, value]) => ({ id: key, ...value }));
+                        setStudents(list);
+                    } else {
+                        setStudents([]);
+                    }
+                    setLoading(false);
+                });
+                return () => unsubscribe();
+            }, []);
+
+            // Filter Logic (Exact Match Priority)
+            const filteredStudents = useMemo(() => {
+                if (!debouncedTerm) return students;
+                const cleanTerm = debouncedTerm.toLowerCase().replace(/\s+/g, '');
+                
+                const exactMatches = students.filter(s => {
+                    const n = (s['ឈ្មោះ'] || '').toLowerCase().replace(/\s+/g, '');
+                    const nl = (s['ឈ្មោះឡាតាំង'] || '').toLowerCase().replace(/\s+/g, '');
+                    const id = (s['អត្តលេខ'] || '').toString().toLowerCase().replace(/\s+/g, '');
+                    return n === cleanTerm || nl === cleanTerm || id === cleanTerm;
+                });
+
+                if (exactMatches.length > 0) return exactMatches;
+
+                return students.filter(s => {
+                    const n = (s['ឈ្មោះ'] || '').toLowerCase().replace(/\s+/g, '');
+                    const nl = (s['ឈ្មោះឡាតាំង'] || '').toLowerCase().replace(/\s+/g, '');
+                    const id = (s['អត្តលេខ'] || '').toString().toLowerCase().replace(/\s+/g, '');
+                    return n.includes(cleanTerm) || nl.includes(cleanTerm) || id.includes(cleanTerm);
+                });
+            }, [students, debouncedTerm]);
+
+            const displayedStudents = filteredStudents.slice(0, visibleCount);
+
+            return React.createElement('div', { className: "min-h-screen text-slate-800 pb-20" },
+                
+                // HEADER
+                React.createElement('header', { className: `fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'glass-header py-2' : 'bg-transparent py-4'}` },
+                    React.createElement('div', { className: "max-w-7xl mx-auto px-4 md:px-6" },
+                        React.createElement('div', { className: "flex flex-col md:flex-row items-center justify-between gap-4" },
+                            
+                            // Logo Area
+                            React.createElement('div', { className: "flex items-center gap-3 w-full md:w-auto" },
+                                React.createElement('div', { className: "bg-primary p-2.5 rounded-xl shadow-lg shadow-primary/30" },
+                                    React.createElement(Sparkles, { className: "text-white", size: 20 })
+                                ),
+                                React.createElement('div', null,
+                                    React.createElement('h1', { className: "text-xl font-bold tracking-tight text-slate-900 leading-none" }, "បញ្ជីឈ្មោះ"),
+                                    React.createElement('p', { className: "text-xs text-slate-500 font-medium hidden sm:block" }, "Student & Staff Directory")
+                                )
+                            ),
+
+                            // Controls Area
+                            React.createElement('div', { className: "flex items-center gap-3 w-full md:w-auto" },
+                                // Search Input
+                                React.createElement('div', { className: "relative flex-1 md:w-72 group" },
+                                    React.createElement('div', { className: "absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none" },
+                                        React.createElement(Search, { className: "text-slate-400 group-focus-within:text-primary transition-colors", size: 18 })
+                                    ),
+                                    React.createElement('input', {
+                                        type: "text",
+                                        className: "block w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm hover:shadow-md",
+                                        placeholder: "ស្វែងរកឈ្មោះ ឬ អត្តលេខ...",
+                                        value: searchTerm,
+                                        onChange: (e) => setSearchTerm(e.target.value)
+                                    }),
+                                    searchTerm !== debouncedTerm && React.createElement('div', { className: "absolute inset-y-0 right-0 pr-3 flex items-center" },
+                                        React.createElement(Loader2, { className: "animate-spin text-primary", size: 16 })
+                                    )
+                                ),
+
+                                // View Toggle (Desktop Only)
+                                React.createElement('div', { className: "hidden md:flex bg-slate-100 p-1 rounded-xl border border-slate-200" },
+                                    React.createElement('button', {
+                                        onClick: () => setViewMode('grid'),
+                                        className: `p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white text-primary shadow-sm' : 'text-slate-400 hover:text-slate-600'}`
+                                    }, React.createElement(LayoutGrid, { size: 18 })),
+                                    React.createElement('button', {
+                                        onClick: () => setViewMode('list'),
+                                        className: `p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white text-primary shadow-sm' : 'text-slate-400 hover:text-slate-600'}`
+                                    }, React.createElement(List, { size: 18 }))
+                                )
+                            )
+                        )
+                    )
+                ),
+
+                // BODY CONTENT
+                React.createElement('main', { className: "max-w-7xl mx-auto px-4 md:px-6 pt-24 md:pt-28" },
+                    
+                    // Stats / Breadcrumb (Optional but nice)
+                    !loading && React.createElement('div', { className: "mb-6 flex justify-between items-end" },
+                        React.createElement('h2', { className: "text-slate-800 font-bold text-lg" }, 
+                            debouncedTerm ? `លទ្ធផលស្វែងរក "${debouncedTerm}"` : "បញ្ជីសរុប"
+                        ),
+                        React.createElement('span', { className: "text-sm font-medium text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-sm" },
+                            `${displayedStudents.length} / ${filteredStudents.length} នាក់`
+                        )
+                    ),
+
+                    // Content Grid/List
+                    React.createElement('div', { className: viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" : "flex flex-col gap-3" },
+                        loading ? (
+                            React.createElement(SkeletonLoader, { viewMode: viewMode })
+                        ) : displayedStudents.length > 0 ? (
+                            displayedStudents.map((student, index) => 
+                                viewMode === 'grid' 
+                                    ? React.createElement(StudentCard, { key: student.id, student: student, index: index })
+                                    : React.createElement(StudentListItem, { key: student.id, student: student, index: index })
+                            )
+                        ) : (
+                            React.createElement('div', { className: "col-span-full py-20 flex flex-col items-center justify-center text-center" },
+                                React.createElement('div', { className: "bg-slate-100 p-4 rounded-full mb-4" },
+                                    React.createElement(Search, { size: 40, className: "text-slate-300" })
+                                ),
+                                React.createElement('h3', { className: "text-lg font-bold text-slate-700" }, "មិនមានទិន្នន័យ"),
+                                React.createElement('p', { className: "text-slate-500" }, "សូមព្យាយាមស្វែងរកដោយប្រើពាក្យគន្លឹះផ្សេង")
+                            )
+                        )
+                    ),
+
+                    // Bottom Loading Indicator
+                    displayedStudents.length < filteredStudents.length && React.createElement('div', { className: "flex justify-center mt-12" },
+                         React.createElement('button', { className: "flex items-center gap-2 px-6 py-2 bg-white border border-slate-200 rounded-full shadow-sm text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors" },
+                            React.createElement(Loader2, { className: "animate-spin", size: 16 }),
+                            "កំពុងផ្ទុកទិន្នន័យបន្ថែម..."
+                         )
+                    )
+                )
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
+    </script>
+</body>
+</html>
